@@ -54,37 +54,42 @@ final readonly class AuthResolver
     }
 
     public function login($_, array $args){
-        $credentials = ['email' => $args['email'], 'password' => $args['password']];
+        try{
 
-        $user = UserCredential::where('email', $args['email'])->first();
-        if (!$user) {
-            return $this->error('User not found', 401);
+            $credentials = ['email' => $args['email'], 'password' => $args['password']];
+            
+            $user = UserCredential::where('email', $args['email'])->first();
+            if (!$user) {
+                return $this->error('User not found', 401);
+            }
+            if (!Hash::check($args['password'], $user->password)) {
+                return $this->error('Invalid credentials', 401);
+            }
+            
+            if (!$token = auth('api')->attempt($credentials)) {
+                return $this->error('Could not create token', 401);
+            }
+            
+            $refreshToken = Str::random(60);
+
+            DB::table('refresh_tokens')->updateOrInsert(
+                ['user_id' => $user->id],
+                [
+                    'user_id' => $user->id,
+                    'token' => $refreshToken,
+                    'expires_at' => now()->addDays(7),
+                    ]
+                );
+
+            return $this->success([
+                'access_token' => $token,
+                'refresh_token' => $refreshToken,
+                'expires_in' => auth('api')->factory()->getTTL() * 60,
+                'user' => $user,
+            ], 'Login successful');
+        }catch(\Exception $e){
+            return $this->error('An error occurred: ' . $e->getMessage(), 500);
         }
-        if (!Hash::check($args['password'], $user->password)) {
-            return $this->error('Invalid credentials', 401);
-        }
-        
-        if (!$token = auth('api')->attempt($credentials)) {
-            return $this->error('Could not create token', 401);
-        }
-
-        $refreshToken = Str::random(60);
-
-        DB::table('refresh_tokens')->updateOrInsert(
-            ['user_id' => $user->id],
-            [
-                'user_id' => $user->id,
-                'token' => $refreshToken,
-                'expires_at' => now()->addDays(7),
-            ]
-        );
-
-        return $this->success([
-            'access_token' => $token,
-            'refresh_token' => $refreshToken,
-            'expires_at' => JWTAuth::factory()->getTTL() * 60,
-            'user' => $user,
-        ], 'Login successful');
     }
 
     public function logout($_, array $args)
@@ -112,31 +117,40 @@ final readonly class AuthResolver
     }
 
     public function refreshToken($_, $args){
-        $refreshToken = $args['refresh_token'];
-        $record = DB::table('refresh_tokens')
-            ->where('token', $refreshToken)
-            ->where('expires_at', '>', now())
-            ->first();
+        try{
+            $refreshToken = $args['refresh_token'];
+            $record = DB::table('refresh_tokens')
+                ->where('token', $refreshToken)
+                ->where('expires_at', '>', now())
+                ->first();
+            
+            if (!$record) {
+                return $this->error('Invalid or expired refresh token', 401);
+            }
+            
+            $user = UserCredential::find($record->user_id);
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
 
-        if (!$record) {
-            return $this->error('Invalid or expired refresh token', 401);
+            $newAccessToken = auth('api')->login($user);
+            $newRefreshToken = Str::random(60);
+            
+            DB::table('refresh_tokens')
+                ->where('user_id', $user->id)
+                ->update([
+                        'token' => $newRefreshToken,
+                        'expires_at' => now()->addDays(7),
+                    ]);
+                
+            return $this->success([
+                'access_token' => $newAccessToken,
+                'refresh_token' => $newRefreshToken,
+                'expires_in' => auth('api')->factory()->getTTL() * 60,
+            ], 'Token refreshed successfully');
+        }catch(\Exception $e){
+            return $this->error('An error occurred: ' . $e->getMessage(), 500);
         }
-
-        $user = UserCredential::find($record->user_id);
-        $newAccessToken = JWTAuth::fromUser($user);
-
-        DB::table('refresh_tokens')
-            ->where('user_id', $user->id)
-            ->update([
-                'token' => $refreshToken,
-                'expires_at' => now()->addDays(7),
-            ]);
-
-        return $this->success([
-            'access_token' => $newAccessToken,
-            'refresh_token' => $refreshToken,
-            'expires_at' => JWTAuth::factory()->getTTL() * 60,
-        ], 'Token refreshed successfully');
     }
 
     public function invalidateToken($_, $args)
