@@ -52,6 +52,7 @@ final readonly class AuthResolver
             'user' => $user,
         ], 'User created successfully', 200);
     }
+
     public function login($_, array $args){
         $credentials = ['email' => $args['email'], 'password' => $args['password']];
 
@@ -88,21 +89,28 @@ final readonly class AuthResolver
 
     public function logout($_, array $args)
     {
-        $token = JWTAuth::getToken();
-        $payload = JWTAuth::getPayload($token);
-        $exp = $payload['exp'];
-        $ttl = $exp - time();
+        try{
+            $token = JWTAuth::getToken();
 
-        Cache::put('blacklist' . $token, true, $ttl);
-
-        if(isset($args['refresh_token']))
-        {
-            DB::table('refresh_tokens')
+            if($token){
+                JWTAuth::invalidate($token);
+            }
+            
+            if(isset($args['refresh_token']))
+            {
+                DB::table('refresh_tokens')
                 ->where('token', $args['refresh_token'])
                 ->delete();
+            }
+
+            auth('api')->logout();
+
+            return $this->success(null, 'Logout successful');
+        }catch(\Exception $e){
+            return $this->error('An error occurred: ' . $e->getMessage(), 500);
         }
-        return $this->success(null, 'Logout successful');
     }
+
     public function refreshToken($_, $args){
         $refreshToken = $args['refresh_token'];
         $record = DB::table('refresh_tokens')
