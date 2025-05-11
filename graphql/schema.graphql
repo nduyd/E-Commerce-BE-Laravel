@@ -29,8 +29,6 @@ type UserCredential {
     username: String
     email: String
     phone: String
-    # email_verified: Boolean
-    # phone_verified: Boolean
     full_name: String
 }
 type UserResponse implements BaseResponse{
@@ -44,7 +42,43 @@ type AuthPayload implements BaseResponse {
   user: UserCredential
   access_token:String
   refresh_token:String
-  expires_at:Int
+  expires_in:Int
+}
+
+type PaymentMethod{
+  id:ID!
+  user_id:ID!
+  method:String
+  is_default:Boolean
+}
+type PaymentMethodsResponse implements BaseResponse {
+  code: Int!
+  message: String!
+  payment_methods: [PaymentMethod]
+}
+type PaymentMethodResponse implements BaseResponse {
+  code: Int!
+  message: String!
+  payment_method: PaymentMethod
+}
+
+type Payment{
+  payment_method_id:ID
+  order_id:ID
+  amount:Float
+  paid_date:String
+  status:String 
+  transaction_ref:String 
+}
+type PaymentResponse implements BaseResponse {
+  code: Int!
+  message: String!
+  payment: Payment
+}
+type PaymentsResponse implements BaseResponse {
+  code: Int!
+  message: String!
+  payments: [Payment]
 }
 
 # Cart feature
@@ -52,16 +86,7 @@ type CartItem{
   product_id:ID!
   quantity:Int!
 }
-type PaymentInfo{
-  payment_method:String
-  payment_status:String 
-  transaction_id:String 
-}
-type PaymentResponse implements BaseResponse {
-  code: Int!
-  message: String!
-  payment: PaymentInfo
-}
+
 type CartItemResponse implements BaseResponse {
   code: Int!
   message: String!
@@ -163,31 +188,31 @@ type SupportTicketsResponse {
 
 # Review feature
 type Review {
-    id: ID!
-    product_id: String!
-    user_id: String!
-    rating: Int!
-    comment: String
-    created_at: String
-    updated_at: String
+  id: ID!
+  product_id: String!
+  user_id: String!
+  rating: Int!
+  comment: String
+  created_at: String
+  updated_at: String
 }
 
 type ReviewResponse implements BaseResponse {
-    code: Int!
-    message: String!
-    review: Review
+  code: Int!
+  message: String!
+  review: Review
 }
 
 type ReviewsResponse implements BaseResponse {
-    code: Int!
-    message: String!
-    reviews: [Review]
+  code: Int!
+  message: String!
+  reviews: [Review]
 }
 
 input ReviewInput {
-    product_id: String!
-    rating: Int!
-    comment: String
+  product_id: String!
+  rating: Int!
+  comment: String
 }
 type BaseResponseImplementation implements BaseResponse {
   code: Int!
@@ -197,7 +222,27 @@ type BaseResponseImplementation implements BaseResponse {
 
 type Query{
     checkConnection:BaseResponseImplementation @field(resolver: "AuthResolver@checkConnection")
-    getPayment(order_id:String):PaymentResponse @field(resolver:"PaymentResolver@getPayment")
+    getPaymentMethods:PaymentMethodsResponse
+      @guard(with: ["api"])
+      @field(resolver:"PaymentResolver@getPaymentMethods")
+    getPaymentMethod(id:String!):PaymentMethodsResponse
+      @guard(with: ["api"])
+      @field(resolver:"PaymentResolver@getPaymentMethod")
+    getPayment(order_id:String):PaymentResponse
+      @guard(with: ["api"])
+      @field(resolver:"PaymentResolver@getPayment")
+    getPayments:PaymentResponse
+      @guard(with: ["api"])
+      @field(resolver:"PaymentResolver@getPayments")
+    getPaymentByOrderId(order_id:String):PaymentResponse
+      @guard(with: ["api"])
+      @field(resolver:"PaymentResolver@getPaymentByOrderId")
+    getPaymentByTransactionRef(transaction_ref:String):PaymentResponse
+      @guard(with: ["api"])
+      @field(resolver:"PaymentResolver@getPaymentByTransactionRef")
+    getPaymentStatus(order_id:String):PaymentResponse
+      @guard(with: ["api"])
+      @field(resolver:"PaymentResolver@getPaymentStatus")
     getProduct(id:String!):ProductItemResponse @field(resolver:"ProductResolver@getProduct")
     getProducts(status:String):ProductItemsResponse @field(resolver:"ProductResolver@getProducts")
     getPaginatedProducts(
@@ -279,6 +324,52 @@ type Mutation {
     old_password:String!
     new_password:String!
   ):Response @field(resolver:"UserCredentialResolver@changePassword")
+  createPaymentMethod(
+    method:String!
+  ):PaymentMethodResponse
+    @guard(with: ["api"])
+    @field(resolver:"PaymentResolver@createPaymentMethod")
+  updatePaymentMethod(
+    id:String!
+    method:String!
+    is_default:Boolean
+  ):PaymentMethodResponse
+    @guard(with: ["api"])
+    @field(resolver:"PaymentResolver@updatePaymentMethod")
+  deletePaymentMethod(
+    id:String!
+  ):Response
+    @guard(with: ["api"])
+    @field(resolver:"PaymentResolver@deletePaymentMethod")
+  createPayment(
+    order_id:ID!
+    payment_method_id:ID!
+    amount:Float!
+    status:String
+    transaction_ref:String
+  ):PaymentResponse
+    @guard(with: ["api"])
+    @field(resolver:"PaymentResolver@createPayment")
+  updatePayment(
+    order_id:ID!
+    payment_method_id:ID!
+    amount:Float!
+    status:String
+    transaction_ref:String
+  ):PaymentResponse
+    @guard(with: ["api"])
+    @field(resolver:"PaymentResolver@updatePayment")
+  updatePaymentStatus(
+    order_id:ID!
+    status:String!
+  ):PaymentResponse
+    @guard(with: ["api"])
+    @field(resolver:"PaymentResolver@updatePaymentStatus")
+  deletePayment(
+    order_id:ID!
+  ):Response
+    @guard(with: ["api"])
+    @field(resolver:"PaymentResolver@deletePayment")
 }
 type output{message:String}
 #end login feature

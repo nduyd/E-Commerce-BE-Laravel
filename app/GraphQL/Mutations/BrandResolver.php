@@ -28,13 +28,6 @@ final readonly class BrandResolver
             return $this->error($validator->errors()->first(), 400);
         }
 
-        // $user = AuthService::Auth();
-        // if(!$user){
-        //     return $this->error('Unauthorized', 401);
-        // } else if(!AuthService::isAdmin()){
-        //     return $this->error('Forbidden', 403);
-        // }
-
         try {
             $brand = Brand::create([
                 'name' => $args['name'],

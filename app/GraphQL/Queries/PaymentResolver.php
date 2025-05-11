@@ -1,9 +1,16 @@
 <?php 
 namespace App\GraphQL\Queries;
-use App\GraphQL\Queries\PaymentResolver;
+
+use App\Models\Payment;
+use Illuminate\Support\Facades\Validator;
+use App\Services\AuthService;
+use App\GraphQL\Traits\GraphQLResponse;
 
 final readonly class PaymentResolver
 {
+
+    use GraphQLResponse;
+
     /** @param  array{}  $args */
     public function __invoke(null $_, array $args)
     {
@@ -11,30 +18,81 @@ final readonly class PaymentResolver
     }
     public function getPayment($_, array $args)
     {
-        $orderId = $args['order_id'] ?? null;
-        if (!$orderId) {
-            return [
-                'code' => 400,
-                'message' => 'Order ID is required',
-                'payment' => null,
-            ];
-        }
+        // $orderId = $args['order_id'] ?? null;
+        $user = auth('api')->user();
 
-        $payment = Payment::where('order_id', $orderId)->limit(1)->first();
-
+        $payment = $user->payments()
+            ->where('id', $args['id'])
+            ->first();
         if (!$payment) {
-            return [
-            'code' => 404,
-            'message' => 'Payment not found',
-            'payment' => null,
-            ];
+            return $this->error('Payment not found', 404);
         }
 
-        return [
-            'code' => 200,
-            'message' => 'Payment found',
+        return $this->success([
             'payment' => $payment,
-        ];
+        ], 'Success', 200);
+    }
 
+    public function getPayments($_, array $args)
+    {
+        $user = auth('api')->user();
+
+        $payments = $user->payments()
+            ->get();
+        if ($payments->isEmpty()) {
+            return $this->error('No payments found', 404);
+        }
+
+        return $this->success([
+            'payments' => $payments,
+        ], 'Success', 200);
+    }
+    
+    public function getPaymentByOrderId($_, array $args)
+    {
+        $user = auth('api')->user();
+
+        $payment = $user->payments()
+            ->where('order_id', $args['order_id'])
+            ->first();
+        if (!$payment) {
+            return $this->error('Payment not found', 404);
+        }
+
+        return $this->success([
+            'payment' => $payment,
+        ], 'Success', 200);
+    }
+
+    public function getPaymentByTransactionRef($_, array $args)
+    {
+        $user = auth('api')->user();
+
+        $payment = $user->payments()
+            ->where('transaction_ref', $args['transaction_ref'])
+            ->first();
+        if (!$payment) {
+            return $this->error('Payment not found', 404);
+        }
+
+        return $this->success([
+            'payment' => $payment,
+        ], 'Success', 200);
+    }
+
+    public function getPaymentStatus($_, array $args)
+    {
+        $user = auth('api')->user();
+
+        $payment = $user->payments()
+            ->where('id', $args['id'])
+            ->first();
+        if (!$payment) {
+            return $this->error('Payment not found', 404);
+        }
+
+        return $this->success([
+            'status' => $payment->status,
+        ], 'Success', 200);
     }
 }
