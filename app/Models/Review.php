@@ -16,6 +16,7 @@ class Review extends Model
     ];
     protected $casts = [
         'rating' => 'integer',
+        'review_date' => 'datetime',
     ];
 
     public function product()

@@ -4,23 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\UserCredential;
+use App\Models\OrderDetails;
+use App\Models\Shipping;
+use App\Models\Payment;
+
 class Order extends Model
 {
     //
     use HasFactory;
     protected $fillable=[
-        'order_id',
         'user_id',
-        'total_price',
+        'total_amount',
+        'shipping_address',
         'status',
+        'tracking_number',
+        'notes'
     ];
+    
+    protected $casts = [
+        'total_amount' => 'decimal:2',
+        'order_date' => 'datetime',
+    ];
+
     public function user()
     {
         return $this->belongsTo(UseCredential::class, 'user_id', 'id');
     }
-    public function items()
+    public function details()
     {
-        return $this->hasMany(OrderItem::class, 'order_id', 'id');
+        return $this->hasMany(OrderDetails::class, 'order_id', 'id');
     }
     public function payment()
     {

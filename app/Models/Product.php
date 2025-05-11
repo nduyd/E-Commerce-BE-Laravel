@@ -17,7 +17,8 @@ class Product extends Model
         'brand_id',
     ];
     protected $casts = [
-        'price' => 'float',
+        'price' => 'decimal:2',
+        'discount' => 'decimal:2',
         'stock' => 'integer',
         'status' => 'boolean',
     ];
@@ -37,5 +38,22 @@ class Product extends Model
     public function brand()
     {
         return $this->belongsTo(Brand::class, 'brand_id', 'id');
+    }
+
+    public function orderDetails()
+    {
+        return $this->hasMany(OrderDetail::class, 'product_id', 'id');
+    }
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'product_id', 'id');
+    }
+    public function promotions()
+    {
+        return $this->belongsToMany(Promotion::class, 'product_id', 'id');
+    }
+    public function getFinnalPriceAttribute()
+    {
+        return $this->price - ($this->price * $this->discount / 100);
     }
 }

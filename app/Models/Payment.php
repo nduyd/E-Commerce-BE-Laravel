@@ -9,26 +9,35 @@ class Payment extends Model
     //
     protected $fillable = [
         'order_id',
-        'payment_method_id',
-        'amount',
-        'paid_date',
-        'status',
-        'transaction_ref',
-        // 'metadata',
+        'payment_method',
+        'transaction_status',
+        'bank_name',
+        'account_number',
+        'account_holder',
+        'transfer_amount',
+        'transfer_date',
+        'transaction_reference',
+        'proof_image_url',
+        'cod_collected_amount',
+        'cod_collected_date',
+        'cod_collected_by',
+        'notes'
     ];
+
     protected $casts = [
-        'amount'=>'float',
-        'paid_date'=>'datetime',
-        'status'=>'string',
-        'transaction_ref'=>'string',
-        // 'metadata'=>'json',
+        'transfer_amount' => 'decimal:2',
+        'transfer_date' => 'datetime',
+        'cod_collected_amount' => 'decimal:2',
+        'cod_collected_date' => 'datetime',
     ];
+
     public function order()
     {
-        return $this->belongsTo(Order::class, 'order_id', 'id');
+        return $this->belongsTo(Order::class);
     }
-    public function paymentMethod()
+
+    public function getPaymentMethodNameAttribute()
     {
-        return $this->belongsTo(PaymentMethod::class, 'payment_method_id', 'id');
+        return $this->payment_method === 'bank_transfer' ? 'Chuyển khoản' : 'COD';
     }
 }

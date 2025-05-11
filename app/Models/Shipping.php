@@ -8,10 +8,25 @@ class Shipping extends Model
 {
     protected $fillable = [
         'order_id',
-        'tracking_code',
         'carrier',
-        'estimated_date',
+        'method',
+        'ship_date',
+        'delivery_date',
+        'shipping_fee',
+        'shipping_address',
+        'phone',
         'status',
+    ];
+
+    protected $casts = [
+        'carrier' => 'string',
+        'method' => 'string',
+        'ship_date' => 'datetime',
+        'delivery_date' => 'datetime',
+        'shipping_fee' => 'float',
+        'shipping_address' => 'string',
+        'phone' => 'string',
+        'status' => 'string',
     ];
     public function order()
     {

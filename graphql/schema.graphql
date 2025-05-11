@@ -45,23 +45,6 @@ type AuthPayload implements BaseResponse {
   expires_in:Int
 }
 
-type PaymentMethod{
-  id:ID!
-  user_id:ID!
-  method:String
-  is_default:Boolean
-}
-type PaymentMethodsResponse implements BaseResponse {
-  code: Int!
-  message: String!
-  payment_methods: [PaymentMethod]
-}
-type PaymentMethodResponse implements BaseResponse {
-  code: Int!
-  message: String!
-  payment_method: PaymentMethod
-}
-
 type Payment{
   payment_method_id:ID
   order_id:ID
@@ -222,12 +205,6 @@ type BaseResponseImplementation implements BaseResponse {
 
 type Query{
     checkConnection:BaseResponseImplementation @field(resolver: "AuthResolver@checkConnection")
-    getPaymentMethods:PaymentMethodsResponse
-      @guard(with: ["api"])
-      @field(resolver:"PaymentResolver@getPaymentMethods")
-    getPaymentMethod(id:String!):PaymentMethodsResponse
-      @guard(with: ["api"])
-      @field(resolver:"PaymentResolver@getPaymentMethod")
     getPayment(order_id:String):PaymentResponse
       @guard(with: ["api"])
       @field(resolver:"PaymentResolver@getPayment")
@@ -324,23 +301,6 @@ type Mutation {
     old_password:String!
     new_password:String!
   ):Response @field(resolver:"UserCredentialResolver@changePassword")
-  createPaymentMethod(
-    method:String!
-  ):PaymentMethodResponse
-    @guard(with: ["api"])
-    @field(resolver:"PaymentResolver@createPaymentMethod")
-  updatePaymentMethod(
-    id:String!
-    method:String!
-    is_default:Boolean
-  ):PaymentMethodResponse
-    @guard(with: ["api"])
-    @field(resolver:"PaymentResolver@updatePaymentMethod")
-  deletePaymentMethod(
-    id:String!
-  ):Response
-    @guard(with: ["api"])
-    @field(resolver:"PaymentResolver@deletePaymentMethod")
   createPayment(
     order_id:ID!
     payment_method_id:ID!
